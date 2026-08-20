@@ -4,3 +4,19 @@
 /.phpunit.result.cache
 /composer.lock
 /vendor/
+
+# Squelette d'application déposé par les recipes Flex à chaque `composer install`. Rien de tout
+# cela n'appartient à un bundle : `bin/new-bundle` l'efface après génération, et la CI le recrée à
+# chaque exécution. Ignoré pour qu'un `git add -A` distrait ne le commite pas — deux des trois
+# premiers bundles l'avaient embarqué en entier.
+/bin/
+/config/
+/public/
+/src/
+/translations/
+/.env
+/.env.dev
+/.env.test
+/compose.yaml
+/compose.override.yaml
+/symfony.lock
