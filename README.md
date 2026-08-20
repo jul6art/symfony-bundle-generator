@@ -209,6 +209,19 @@ every paginated response, because the serializer recognises `PaginatorInterface`
 carries the information — and verify the regression test by mutation: disable the fix, watch it go
 red, put the fix back.
 
+**A `--prefer-lowest` job needs floors, not just ceilings.** Two of the traps above only ever showed
+on the lowest dependency set, and both were invisible on the highest one: a `symfony/*` pin the CI's
+`SYMFONY_REQUIRE` could not satisfy, and `doctrine/orm` old enough that the container DoctrineBundle
+compiled called a method it does not have — reported from the compiled container, so the trace names
+neither package. The `orm` brick now pins a floor, and the reason is written next to it. When a job
+is red on lowest and green on highest, look at what a *dependency* requires of another dependency,
+not at the code.
+
+**A leaked exception handler is version-shaped.** The teardown that pops Symfony's `ErrorHandler`
+when it recognises its array-callable form — which is what Symfony's own `KernelTestCase` does — pops
+nothing on an older Symfony, and every kernel-booting test comes back risky. Drain the stack back to
+the handler recorded before boot instead, with a bound so a replaced stack stops the loop.
+
 **Write the test before believing a class's own docblock.** `ui-bundle`'s base form type documented
 itself as usable directly and did not route to its own Twig block: the prefix Symfony derives from
 `InputGroupAddOnType` is `input_group_add_on`, not `input_group_addon`.

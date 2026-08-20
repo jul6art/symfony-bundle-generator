@@ -1,3 +1,12 @@
 doctrine/doctrine-bundle            # nécessaire pour booter l'ORM dans les tests fonctionnels
-doctrine/orm
+
+# ⚠️ Plancher explicite, et non la contrainte que `composer require` aurait écrite.
+#
+# Le conteneur compilé par DoctrineBundle appelle `Configuration::enableNativeLazyObjects()` sur
+# PHP 8.4+. La méthode n'existe qu'à partir d'ORM 3.5 : avec le jeu de dépendances *lowest* de la
+# CI, DoctrineBundle reste installable avec un ORM plus ancien, et les 26 tests qui bootent l'ORM
+# tombent sur « Call to undefined method » — depuis le conteneur compilé, donc avec une trace qui
+# ne désigne ni l'un ni l'autre paquet.
+doctrine/orm:^3.5
+
 phpstan/phpstan-doctrine            # sans lui, PHPStan croit les propriétés d'entité « jamais lues »
