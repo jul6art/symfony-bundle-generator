@@ -213,6 +213,22 @@ red, put the fix back.
 itself as usable directly and did not route to its own Twig block: the prefix Symfony derives from
 `InputGroupAddOnType` is `input_group_add_on`, not `input_group_addon`.
 
+**Flex thinks it is scaffolding an application, and two of its choices are actively wrong.** It is a
+plugin, so `--no-scripts` does not stop its recipes: they drop `bin/console`, `public/index.php`,
+`src/Kernel.php`, `config/packages/*.yaml`, `.env` and `compose.yaml` into a *bundle*, and they
+rewrite `phpunit.xml.dist` to add `<env name="APP_ENV" value="dev"/>` directly under the template's
+`<server name="APP_ENV" value="test" force="true"/>`. The `force` wins, so nothing breaks — until
+someone reads the file and believes the wrong line. `bin/new-bundle` now deletes the skeleton and
+restores the two template files; two bundles had already committed the whole thing before this was
+noticed.
+
+**`composer require` writes the constraint of what it resolved.** That is `^8.1` today, and the CI's
+`SYMFONY_REQUIRE: 7.4.*` cannot satisfy it — it holds `symfony/security-http` at 7.4 while
+`symfony/security-bundle: ^8.1` demands the 8.1 branch. The set becomes unsatisfiable on the
+*highest* job, which is a counter-intuitive place to look. Constraints are normalised back to the
+range the bundle declares, and the pass that follows is an `update` rather than an `install`, since
+rewriting composer.json after a `require` desynchronises the lock.
+
 **Extract less than the plan says when reading the code says so.** Three items planned for
 `acl-bundle` stayed in the application: a service that turned out to be two lists of that
 application's URLs, a twelve-line adapter over a base class already extracted, and an interface no

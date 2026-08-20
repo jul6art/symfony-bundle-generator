@@ -275,6 +275,30 @@ if [ "$DRY_RUN" = 0 ]; then
         info "require-dev :$BRICK_PKGS"
         # shellcheck disable=SC2086
         composer require --dev --no-install --no-scripts -q $BRICK_PKGS
+
+        # `composer require` écrit la contrainte de ce qu'il a résolu — donc `^8.1` aujourd'hui.
+        # C'est exactement ce que la CI ne peut pas satisfaire : son `SYMFONY_REQUIRE: 7.4.*`
+        # maintient `symfony/security-http` en 7.4 tandis que `symfony/security-bundle: ^8.1`
+        # exige la branche 8.1, et le jeu devient insatisfiable — sur le jeu *highest*, ce qui rend
+        # le diagnostic contre-intuitif. Les contraintes Symfony sont donc ramenées à la plage que
+        # le bundle déclare supporter, celle du gabarit.
+        #
+        # C'est aussi pourquoi la passe suivante est un `update` et non un `install` : réécrire
+        # `composer.json` après un `require` désynchronise le verrou, et `composer validate` le
+        # signale — à juste titre.
+        info "contraintes symfony/* alignées sur ^7.4 || ^8.0"
+        php -r '
+            $f = "composer.json";
+            $d = json_decode(file_get_contents($f), true, 512, JSON_THROW_ON_ERROR);
+            foreach (["require", "require-dev"] as $section) {
+                foreach ($d[$section] ?? [] as $name => $constraint) {
+                    if (str_starts_with($name, "symfony/") && "symfony/flex" !== $name) {
+                        $d[$section][$name] = "^7.4 || ^8.0";
+                    }
+                }
+            }
+            file_put_contents($f, json_encode($d, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) . "\n");
+        '
     fi
     # Deux passes, et c'est nécessaire : Flex ne peut pas influencer une résolution où il n'est
     # pas encore installé. La première l'installe, la seconde applique son `extra.symfony.require`
@@ -284,7 +308,26 @@ if [ "$DRY_RUN" = 0 ]; then
     # produit un jeu insatisfiable dès qu'on demande `orm` et `security` ensemble, et n'apporte
     # rien : c'est la CI qui contraint, sur ses deux jeux de dépendances. Localement, résoudre le
     # Symfony le plus récent élargit ce qu'on exerce.
-    composer install --no-scripts -q
+    composer update --no-scripts -q
+
+    # ── Flex a cru générer une application ─────────────────────────────────────────────────
+    # Flex est un plugin : `--no-scripts` ne l'empêche pas d'appliquer ses recipes, et celles de
+    # framework-bundle, routing, twig… déposent un squelette d'application complet — `bin/console`,
+    # `public/index.php`, `src/Kernel.php`, `config/packages/*.yaml`, `.env`, `compose.yaml`. Dans
+    # un **bundle**, tout cela est au mieux du poids mort et au pire trompeur : personne ne devine
+    # que le `config/packages/twig.yaml` d'un paquet vendor ne configure rien.
+    #
+    # Et deux fichiers du gabarit sont réécrits au passage. Le pire est `phpunit.xml.dist`, où la
+    # recipe ajoute `<env name="APP_ENV" value="dev"/>` juste sous le
+    # `<server name="APP_ENV" value="test" force="true"/>` du gabarit. Le `force` gagne, donc rien
+    # ne casse — jusqu'au jour où quelqu'un lit le fichier et croit la mauvaise ligne.
+    #
+    # On enlève le squelette, et on remet les deux fichiers du gabarit, qui en sont la source.
+    info "squelette d'application déposé par Flex retiré"
+    rm -rf ./bin ./config ./public ./src ./translations ./var
+    rm -f ./.env ./.env.dev ./.env.test ./.env.local.php ./compose.yaml ./compose.override.yaml ./symfony.lock
+    cp "$OVERLAY_DIR/phpunit.xml.dist" ./phpunit.xml.dist
+    cp "$OVERLAY_DIR/.gitignore" ./.gitignore
 else
     info "require-dev :$BRICK_PKGS"
 fi
