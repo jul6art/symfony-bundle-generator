@@ -250,6 +250,6 @@ it — out loud, saying which item and why.
 
 ## License
 
-Open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+The Symfony Bundle Generator is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
 
 &copy; 2026 [jul6art](https://devinthehood.com)
