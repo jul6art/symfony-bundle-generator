@@ -172,6 +172,53 @@ common/overlay/         everything every bundle gets; *.tpl files are renamed af
 bricks/<name>/          optional additions, cumulative
 ```
 
+## Traps already paid for
+
+Three bundles came out of this generator — `api-bundle`, `ui-bundle`, `acl-bundle`. Each of the
+following cost real time; none of them is caught by reading the code.
+
+**A dependency the container needs to compile belongs in `require`, not `require-dev`.** The bricks
+add dev dependencies only, deliberately — but a bundle whose services *inject* something from a
+package has a hard requirement on it. `acl-bundle` had `symfony/security-bundle` in `require-dev`:
+it installed cleanly in a consuming project and then failed to compile the container. The generated
+`ContainerTest` is what caught it, which is the whole reason it exists.
+
+**A prototype configuration node replaces the map, it does not merge it.** Ship a default table —
+an icon set, a route map — and a project declaring one key silently loses all the others. Keep the
+default on the node so `config:dump-reference` documents it, and re-merge it in the `Extension`:
+
+```php
+->setArgument('$icons', [...self::DEFAULTS, ...$config['icons']])
+```
+
+**A class a consumer has to double must not be `final`.** Rector will finalise everything it can,
+and it is usually right. But a decision service, a resolver, anything that is a *seam* gets stubbed
+in the consumer's own unit tests: sealing one turned 74 voter tests in the reference consumer into
+`ClassIsFinalException` at once. Skip the rule for that file and say why in the docblock.
+
+**Do not drop a type guarantee to satisfy PHPStan.** Facing a `generator.valueType` error, the first
+reflex was to remove a `@template T` — which cost four consumer classes their typing. The right move
+is to narrow the promise to what is provable, not to abandon it. And when the analyser refuses
+something that *is* true, the honest fix is a different design, not a suppression: `phpstan.dist.neon`
+here has no baseline on purpose.
+
+**Assert on identity, not on content, wherever a value crosses a boundary.** `api-bundle` wrapped an
+API Platform paginator in a lazy generator: every row survived, and `totalItems` disappeared from
+every paginated response, because the serializer recognises `PaginatorInterface` and not
+`Generator`. Thirty-five tests stayed green. Use `assertSame` on the object when the type is what
+carries the information — and verify the regression test by mutation: disable the fix, watch it go
+red, put the fix back.
+
+**Write the test before believing a class's own docblock.** `ui-bundle`'s base form type documented
+itself as usable directly and did not route to its own Twig block: the prefix Symfony derives from
+`InputGroupAddOnType` is `input_group_add_on`, not `input_group_addon`.
+
+**Extract less than the plan says when reading the code says so.** Three items planned for
+`acl-bundle` stayed in the application: a service that turned out to be two lists of that
+application's URLs, a twelve-line adapter over a base class already extracted, and an interface no
+code in the bundle would ever call. A plan written before reading the code is corrected by reading
+it — out loud, saying which item and why.
+
 ## License
 
 Open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
