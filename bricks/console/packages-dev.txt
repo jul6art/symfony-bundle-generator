@@ -1,0 +1,2 @@
+symfony/console
+symfony/lock                        # une commande planifiée sans verrou se chevauche avec elle-même

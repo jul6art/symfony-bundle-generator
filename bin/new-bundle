@@ -1,0 +1,309 @@
+#!/usr/bin/env bash
+#
+# new-bundle — génère un bundle Symfony prêt à passer sa CI.
+#
+#   ./bin/new-bundle api                       # jul6art/api-bundle
+#   ./bin/new-bundle ui --with=form,twig
+#   ./bin/new-bundle acl --with=security --dry-run
+#
+# Principe : le squelette d'un bundle est trivial (une classe, une extension, une
+# configuration). Ce qui ne l'est pas, et ce que ce générateur apporte, c'est le
+# **harnais** — `composer qa`, la CI à deux jeux de dépendances, le kernel de test
+# capable de booter l'ORM ou la sécurité à la demande, et les commentaires qui
+# disent pourquoi chaque garde-fou existe.
+#
+# Compatible bash 3.2 (bash système de macOS).
+
+set -euo pipefail
+
+GENERATOR_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+OVERLAY_DIR="$GENERATOR_DIR/common/overlay"
+BRICKS_DIR="$GENERATOR_DIR/bricks"
+
+# ---------------------------------------------------------------- affichage --
+if [ -t 1 ]; then
+    B=$'\033[1m'; N=$'\033[0m'; GREEN=$'\033[32m'; YELLOW=$'\033[33m'; RED=$'\033[31m'
+else
+    B=''; N=''; GREEN=''; YELLOW=''; RED=''
+fi
+
+log()  { printf '\n%s==> %s%s\n' "$GREEN$B" "$*" "$N"; }
+info() { printf '    %s\n' "$*"; }
+warn() { printf '%s/!\\ %s%s\n' "$YELLOW" "$*" "$N" >&2; }
+die()  { printf '%sERREUR : %s%s\n' "$RED" "$*" "$N" >&2; exit 1; }
+
+run() {
+    if [ "$DRY_RUN" = 1 ]; then printf '    [dry-run] %s\n' "$*"; return 0; fi
+    "$@"
+}
+
+# ------------------------------------------------------------------ bricks --
+bricks_list() {
+    [ -d "$BRICKS_DIR" ] || return 0
+    for d in "$BRICKS_DIR"/*/; do [ -d "$d" ] || continue; basename "$d"; done
+}
+
+brick_description() {
+    local conf="$BRICKS_DIR/$1/brick.conf"
+    [ -f "$conf" ] || { printf '%s\n' '(sans description)'; return 0; }
+    # shellcheck disable=SC1090
+    ( set +u; . "$conf"; printf '%s\n' "${DESCRIPTION:-}" )
+}
+
+usage() {
+    cat <<USAGE
+${B}new-bundle${N} — génère un bundle Symfony avec son harnais de qualité.
+
+  ${B}Usage${N}
+    ./bin/new-bundle <nom> [options]
+
+  Le nom est le sujet du bundle, sans suffixe : « api » produit ${B}api-bundle${N},
+  le paquet ${B}jul6art/api-bundle${N}, le namespace ${B}Jul6Art\\ApiBundle${N}.
+
+  ${B}Options${N}
+    --with=a,b,c        briques optionnelles (voir ci-dessous)
+    --vendor=NAME       éditeur du paquet          (défaut : jul6art)
+    --namespace=NS      namespace racine          (défaut : déduit du vendor et du nom)
+    --dir=PATH          répertoire cible          (défaut : ../BUNDLES/<nom>-bundle)
+    --description=TEXT  description du paquet
+    --dry-run           montre ce qui serait fait, n'écrit rien
+    -h, --help          cette aide
+
+  ${B}Briques${N}
+USAGE
+    local b
+    for b in $(bricks_list); do
+        printf '    %-12s %s\n' "$b" "$(brick_description "$b")"
+    done
+    cat <<'USAGE'
+
+  Ce sont des ajouts cumulables, pas des variantes exclusives : un bundle de
+  formulaires a besoin de `form` ET de `twig`, un bundle d'API de `orm`. Chaque
+  brique n'ajoute que des dépendances de **développement** — ce que le bundle exige
+  vraiment se déclare à la main dans `require`, une fois qu'on sait ce qui est
+  optionnel.
+USAGE
+}
+
+# --------------------------------------------------------------- arguments ---
+NAME=''
+VENDOR='jul6art'
+NAMESPACE=''
+TARGET_DIR=''
+DESCRIPTION=''
+WITH=''
+DRY_RUN=0
+
+while [ $# -gt 0 ]; do
+    case "$1" in
+        -h|--help) usage; exit 0 ;;
+        --with=*) WITH="${1#*=}" ;;
+        --vendor=*) VENDOR="${1#*=}" ;;
+        --namespace=*) NAMESPACE="${1#*=}" ;;
+        --dir=*) TARGET_DIR="${1#*=}" ;;
+        --description=*) DESCRIPTION="${1#*=}" ;;
+        --dry-run) DRY_RUN=1 ;;
+        -*) die "option inconnue : $1" ;;
+        *) [ -z "$NAME" ] || die "un seul nom attendu (reçu « $NAME » puis « $1 »)"; NAME="$1" ;;
+    esac
+    shift
+done
+
+[ -n "$NAME" ] || { usage; exit 1; }
+
+# « api-bundle » ou « api » : on accepte les deux et on normalise.
+NAME="$(printf '%s' "$NAME" | LC_ALL=C tr '[:upper:]' '[:lower:]' | LC_ALL=C sed -e 's/-bundle$//' -e 's/[^a-z0-9-]/-/g')"
+[ -n "$NAME" ] || die "nom vide après normalisation"
+
+PACKAGE="$NAME-bundle"
+PACKAGE_SLUG="$VENDOR-$PACKAGE"
+
+# api → Api, my-thing → MyThing
+studly() {
+    printf '%s' "$1" | LC_ALL=C awk -F- '{ for (i = 1; i <= NF; i++) printf "%s%s", toupper(substr($i, 1, 1)), substr($i, 2) }'
+}
+
+STUDLY_NAME="$(studly "$NAME")"
+
+# La casse d'un nom d'éditeur ne se déduit pas : « jul6art » s'écrit « Jul6Art », ce qu'aucune
+# règle mécanique ne donne. Les cas connus sont déclarés ; pour le reste, --namespace.
+case "$VENDOR" in
+    jul6art) STUDLY_VENDOR='Jul6Art' ;;
+    *)       STUDLY_VENDOR="$(studly "$VENDOR")" ;;
+esac
+BUNDLE_CLASS="${STUDLY_NAME}Bundle"
+EXTENSION_CLASS="${STUDLY_NAME}Extension"
+ALIAS="$(printf '%s' "$NAME" | LC_ALL=C tr '-' '_')"
+[ -n "$NAMESPACE" ] || NAMESPACE="${STUDLY_VENDOR}\\${BUNDLE_CLASS}"
+[ -n "$TARGET_DIR" ] || TARGET_DIR="$GENERATOR_DIR/../BUNDLES/$PACKAGE"
+[ -n "$DESCRIPTION" ] || DESCRIPTION="Symfony $NAME bundle"
+
+BUNDLE_TITLE="$(printf '%s' "$DESCRIPTION")"
+BUNDLE_TITLE_UNDERLINE="$(printf '%s' "$BUNDLE_TITLE" | LC_ALL=C sed 's/./=/g')"
+
+# ---------------------------------------------------------------- validation --
+[ -e "$TARGET_DIR" ] && [ "$DRY_RUN" = 0 ] && die "« $TARGET_DIR » existe déjà — supprimez-le ou choisissez --dir"
+
+SELECTED_BRICKS=''
+if [ -n "$WITH" ]; then
+    for b in $(printf '%s' "$WITH" | LC_ALL=C tr ',' ' '); do
+        [ -d "$BRICKS_DIR/$b" ] || die "brique inconnue : « $b » (disponibles : $(bricks_list | tr '\n' ' '))"
+        SELECTED_BRICKS="$SELECTED_BRICKS $b"
+    done
+fi
+
+# --------------------------------------------------------------------- go ! --
+log "Bundle « $PACKAGE » — $VENDOR/$PACKAGE — $NAMESPACE"
+info "$DESCRIPTION"
+info "cible : $TARGET_DIR"
+[ -n "$SELECTED_BRICKS" ] && info "briques :$SELECTED_BRICKS"
+
+log "Overlay"
+run mkdir -p "$TARGET_DIR"
+run rsync -a --exclude '.DS_Store' "$OVERLAY_DIR/" "$TARGET_DIR/"
+
+# Les .tpl deviennent leur vrai nom ; BUNDLE_CLASS et EXTENSION prennent le nom de la classe.
+log "Nommage"
+rename_to() {
+    local from="$1" to="$2"
+    [ -e "$TARGET_DIR/$from" ] || return 0
+    info "$from → $to"
+    run mv "$TARGET_DIR/$from" "$TARGET_DIR/$to"
+}
+
+rename_to 'BUNDLE_CLASS.php.tpl' "$BUNDLE_CLASS.php"
+rename_to 'DependencyInjection/EXTENSION.php.tpl' "DependencyInjection/$EXTENSION_CLASS.php"
+
+if [ "$DRY_RUN" = 0 ]; then
+    find "$TARGET_DIR" -name '*.tpl' -type f | while IFS= read -r f; do
+        mv "$f" "${f%.tpl}"
+    done
+fi
+info '*.tpl → nom final'
+
+log "Briques du kernel de test"
+if [ "$DRY_RUN" = 0 ]; then
+    for b in $(bricks_list); do
+        keep=0
+        for sel in $SELECTED_BRICKS; do [ "$sel" = "$b" ] && keep=1; done
+
+        if [ "$keep" = 1 ]; then
+            # Brique retenue : on ne retire que les marqueurs.
+            find "$TARGET_DIR" -type f -name '*.php*' \
+                -exec perl -pi -e "s@^\\s*//\\s*\\{\\{[#/]$b\\}\\}\\s*\n@@g" {} +
+        else
+            # Brique absente : le bloc entier part, marqueurs compris.
+            find "$TARGET_DIR" -type f -name '*.php*' \
+                -exec perl -0777 -pi -e "s@[ \\t]*//\\s*\\{\\{#$b\\}\\}.*?//\\s*\\{\\{/$b\\}\\}[ \\t]*\n@@gs" {} +
+        fi
+    done
+
+    # Retirer un bloc laisse ses lignes vides derrière lui : sans ce nettoyage, le fichier généré
+    # échoue au premier `cs-check`, ce qui est une bien mauvaise première impression.
+    find "$TARGET_DIR" -type f -name '*.php*' -exec perl -0777 -pi -e '
+        s/\n{3,}/\n\n/g;
+        s/\n{2,}\}\n\z/\n}\n/;   # pas de ligne vide juste avant une accolade finale
+    ' {} +
+fi
+info 'blocs conditionnels résolus'
+
+log "Substitutions"
+if [ "$DRY_RUN" = 0 ]; then
+    # `export` et non un préfixe d'environnement : un préfixe ne vaut que pour la commande qu'il
+    # précède, donc `find` l'aurait reçu et `perl`, derrière le tube, non — les substitutions
+    # seraient restées littérales et composer aurait refusé le composer.json.
+    export SK_VENDOR="$VENDOR" SK_PACKAGE="$PACKAGE" SK_PACKAGE_SLUG="$PACKAGE_SLUG"
+    export SK_NAMESPACE="$NAMESPACE" SK_BUNDLE_CLASS="$BUNDLE_CLASS" SK_EXTENSION_CLASS="$EXTENSION_CLASS"
+    # Dans du JSON, un antislash se double : « Jul6Art\ApiBundle » y devient
+    # « Jul6Art\\ApiBundle ». D'où un placeholder distinct, employé par le seul composer.json.
+    export SK_NAMESPACE_JSON="$(printf '%s' "$NAMESPACE" | LC_ALL=C sed 's/\\/\\\\/g')"
+    export SK_ALIAS="$ALIAS" SK_DESCRIPTION="$DESCRIPTION" SK_TITLE="$BUNDLE_TITLE"
+    export SK_TITLE_UNDERLINE="$BUNDLE_TITLE_UNDERLINE" SK_YEAR="$(date +%Y)"
+    export SK_AUTHOR_NAME="Jul6Art" SK_AUTHOR_EMAIL="admin@devinthehood.com"
+    export SK_AUTHOR_HOMEPAGE="https://devinthehood.com/" SK_COPYRIGHT="Geoffrey Kratz, Jul6art, DevInTheHood"
+    export SK_PHP="^8.5" SK_BRANCH_ALIAS="1.x-dev"
+
+    # `-exec … {} +` et non un tube vers xargs : xargs lance l'utilitaire même sans fichier, et
+    # `perl -pi` sans argument lit alors l'entrée standard — le générateur se figeait là, sans rien
+    # afficher.
+    find "$TARGET_DIR" -type f ! -name '*.png' ! -name '*.ico' -exec perl -pi -e '
+        s/\{\{VENDOR\}\}/$ENV{SK_VENDOR}/g;
+        s/\{\{PACKAGE_SLUG\}\}/$ENV{SK_PACKAGE_SLUG}/g;
+        s/\{\{PACKAGE\}\}/$ENV{SK_PACKAGE}/g;
+        s/\{\{NAMESPACE_JSON\}\}/$ENV{SK_NAMESPACE_JSON}/g;
+        s/\{\{NAMESPACE\}\}/$ENV{SK_NAMESPACE}/g;
+        s/\{\{BUNDLE_CLASS\}\}/$ENV{SK_BUNDLE_CLASS}/g;
+        s/\{\{EXTENSION_CLASS\}\}/$ENV{SK_EXTENSION_CLASS}/g;
+        s/\{\{ALIAS\}\}/$ENV{SK_ALIAS}/g;
+        s/\{\{DESCRIPTION\}\}/$ENV{SK_DESCRIPTION}/g;
+        s/\{\{BUNDLE_TITLE_UNDERLINE\}\}/$ENV{SK_TITLE_UNDERLINE}/g;
+        s/\{\{BUNDLE_TITLE\}\}/$ENV{SK_TITLE}/g;
+        s/\{\{YEAR\}\}/$ENV{SK_YEAR}/g;
+        s/\{\{AUTHOR_NAME\}\}/$ENV{SK_AUTHOR_NAME}/g;
+        s/\{\{AUTHOR_EMAIL\}\}/$ENV{SK_AUTHOR_EMAIL}/g;
+        s/\{\{AUTHOR_HOMEPAGE\}\}/$ENV{SK_AUTHOR_HOMEPAGE}/g;
+        s/\{\{COPYRIGHT_HOLDER\}\}/$ENV{SK_COPYRIGHT}/g;
+        s/\{\{PHP_CONSTRAINT\}\}/$ENV{SK_PHP}/g;
+        s/\{\{BRANCH_ALIAS\}\}/$ENV{SK_BRANCH_ALIAS}/g;
+    ' {} +
+fi
+info 'placeholders remplacés'
+
+# ------------------------------------------------------------------ briques --
+if [ -n "$SELECTED_BRICKS" ]; then
+    log "Briques"
+    for b in $SELECTED_BRICKS; do
+        info "$b — $(brick_description "$b")"
+        if [ -d "$BRICKS_DIR/$b/overlay" ]; then
+            run rsync -a "$BRICKS_DIR/$b/overlay/" "$TARGET_DIR/"
+        fi
+    done
+fi
+
+# ---------------------------------------------------------------- composer ---
+log "Dépendances"
+BRICK_PKGS=''
+for b in $SELECTED_BRICKS; do
+    f="$BRICKS_DIR/$b/packages-dev.txt"
+    [ -f "$f" ] || continue
+    BRICK_PKGS="$BRICK_PKGS $(LC_ALL=C sed -e 's/#.*$//' -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' "$f" | grep -v '^$' | tr '\n' ' ')"
+done
+
+if [ "$DRY_RUN" = 0 ]; then
+    cd "$TARGET_DIR"
+    if [ -n "$(printf '%s' "$BRICK_PKGS" | tr -d ' ')" ]; then
+        info "require-dev :$BRICK_PKGS"
+        # shellcheck disable=SC2086
+        composer require --dev --no-install --no-scripts -q $BRICK_PKGS
+    fi
+    # Deux passes, et c'est nécessaire : Flex ne peut pas influencer une résolution où il n'est
+    # pas encore installé. La première l'installe, la seconde applique son `extra.symfony.require`
+    # — sans quoi le bundle généré part sur le dernier Symfony tandis que la CI reste en 7.4, et
+    # l'outillage commence à se contredire.
+    # Une seule passe, volontairement. Forcer ici la ligne Symfony de la CI (SYMFONY_REQUIRE)
+    # produit un jeu insatisfiable dès qu'on demande `orm` et `security` ensemble, et n'apporte
+    # rien : c'est la CI qui contraint, sur ses deux jeux de dépendances. Localement, résoudre le
+    # Symfony le plus récent élargit ce qu'on exerce.
+    composer install --no-scripts -q
+else
+    info "require-dev :$BRICK_PKGS"
+fi
+
+# ------------------------------------------------------------------- final ---
+if [ "$DRY_RUN" = 0 ]; then
+    log "Vérification"
+    ( cd "$TARGET_DIR" && composer validate --strict --no-check-publish >/dev/null && info 'composer.json valide' )
+    ( cd "$TARGET_DIR" && vendor/bin/phpunit --no-output >/dev/null 2>&1 && info 'la suite passe' ) \
+        || warn "la suite ne passe pas encore — lancez « composer qa » dans $TARGET_DIR"
+fi
+
+log "Terminé"
+cat <<NEXT
+    cd $TARGET_DIR
+    git init && git remote add origin git@github.com:$VENDOR/$PACKAGE.git
+    composer qa                                  # cs + rector + phpstan + phpunit
+
+    Puis, dans cet ordre : écrire le test, écrire la brique, écrire la section du
+    README qui dit comment s'en servir. Un tag ne se pose qu'après une CI verte —
+    un tag Packagist ne se retire pas.
+NEXT

@@ -1,0 +1,3 @@
+doctrine/doctrine-bundle            # nécessaire pour booter l'ORM dans les tests fonctionnels
+doctrine/orm
+phpstan/phpstan-doctrine            # sans lui, PHPStan croit les propriétés d'entité « jamais lues »

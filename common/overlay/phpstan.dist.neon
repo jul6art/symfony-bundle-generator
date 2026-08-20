@@ -1,0 +1,14 @@
+parameters:
+    level: max
+    phpVersion:
+        min: 80500
+        max: 80599
+    paths:
+        - {{BUNDLE_CLASS}}.php
+        - DependencyInjection
+        - Tests
+        - rector.php
+    treatPhpDocTypesAsCertain: false
+
+    # Le niveau max dès le premier jour, et sans baseline : une brique extraite avec une
+    # baseline arrive avec sa dette déjà tolérée, et personne ne la reprend ensuite.

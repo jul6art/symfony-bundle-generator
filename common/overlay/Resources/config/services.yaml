@@ -1,0 +1,6 @@
+services:
+    # Services whose dependencies are all guaranteed go here, wired explicitly.
+    #
+    # Anything conditional — a brick that needs an optional package, or a service the
+    # application may not have — is registered from the extension or removed by a compiler
+    # pass instead. Cf. DependencyInjection/{{EXTENSION_CLASS}}.php.

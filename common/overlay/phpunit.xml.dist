@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="Tests/bootstrap.php"
+         cacheDirectory=".phpunit.cache"
+         colors="true"
+         beStrictAboutChangesToGlobalState="true"
+         beStrictAboutOutputDuringTests="true"
+         failOnDeprecation="true"
+         failOnNotice="true"
+         failOnPhpunitDeprecation="true"
+         failOnPhpunitNotice="true"
+         failOnRisky="true"
+         failOnWarning="true"
+         displayDetailsOnAllIssues="true"
+>
+    <testsuites>
+        <testsuite name="{{BUNDLE_CLASS}} test suite">
+            <directory suffix="Test.php">Tests</directory>
+        </testsuite>
+    </testsuites>
+
+    <!--
+        ignoreIndirectDeprecations: fail on deprecations this bundle triggers, not on the ones a
+        dependency triggers inside its own code. With `dependency-versions: lowest` the CI
+        installs the minimum of every constraint, and those releases predate PHP 8.5: implicitly
+        nullable parameters, ReflectionProperty::setAccessible(). The bundle works with them, and
+        failing the build over a dependency's internals would only force the minimums up for no
+        real gain.
+
+        Leave this on. Every bundle of this ecosystem needed it, each time discovered by a red
+        `lowest deps` job with a green test suite — cf. core-bundle v2.7.0, audit-bundle v3.0.0,
+        push-bundle v2.1.0.
+    -->
+    <source ignoreIndirectDeprecations="true">
+        <include>
+            <directory>.</directory>
+        </include>
+        <exclude>
+            <directory>Resources</directory>
+            <directory>Tests</directory>
+            <directory>vendor</directory>
+        </exclude>
+    </source>
+
+    <php>
+        <ini name="display_errors" value="1"/>
+        <ini name="error_reporting" value="-1"/>
+        <server name="APP_ENV" value="test" force="true"/>
+        <server name="SHELL_VERBOSITY" value="-1"/>
+    </php>
+</phpunit>

@@ -1,0 +1,2 @@
+symfony/form
+symfony/validator                   # un type de formulaire sans contrainte ne se teste qu'à moitié
