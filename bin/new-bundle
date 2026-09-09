@@ -323,9 +323,15 @@ if [ "$DRY_RUN" = 0 ]; then
     # ne casse — jusqu'au jour où quelqu'un lit le fichier et croit la mauvaise ligne.
     #
     # On enlève le squelette, et on remet les deux fichiers du gabarit, qui en sont la source.
+    #
+    # ⚠️ Cette liste VIEILLIT à chaque nouvelle recette. `AGENTS.md` et `templates/` y ont été
+    # ajoutés le 2026-09-09, après avoir été commités pour de vrai dans `dataflow-bundle` :
+    # `.gitignore` ne les couvrait pas et un `git add -A` les a pris. Quand un `git status` sur un
+    # bundle neuf montre un fichier inattendu, il se règle ICI et dans l'overlay `.gitignore`, pas
+    # dans le bundle.
     info "squelette d'application déposé par Flex retiré"
-    rm -rf ./bin ./config ./public ./src ./translations ./var
-    rm -f ./.env ./.env.dev ./.env.test ./.env.local.php ./compose.yaml ./compose.override.yaml ./symfony.lock
+    rm -rf ./bin ./config ./public ./src ./translations ./var ./templates
+    rm -f ./.env ./.env.dev ./.env.test ./.env.local.php ./compose.yaml ./compose.override.yaml ./symfony.lock ./AGENTS.md
     cp "$OVERLAY_DIR/phpunit.xml.dist" ./phpunit.xml.dist
     cp "$OVERLAY_DIR/.gitignore" ./.gitignore
 else

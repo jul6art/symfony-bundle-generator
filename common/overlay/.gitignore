@@ -20,3 +20,11 @@
 /compose.yaml
 /compose.override.yaml
 /symfony.lock
+
+# Deux dépôts que Flex a ajoutés après l'écriture de la liste ci-dessus, et qui ont été commités
+# pour de vrai dans `dataflow-bundle` le 2026-09-09 : `AGENTS.md` est un guide d'APPLICATION,
+# `templates/` un gabarit d'application. Aucun des deux n'a de sens dans un bundle.
+# ⚠️ Cette liste vieillit à chaque nouvelle recette : quand un `git status` d'un bundle neuf
+# montre un fichier inattendu, c'est ici qu'il se règle, pas dans le bundle.
+/AGENTS.md
+/templates/

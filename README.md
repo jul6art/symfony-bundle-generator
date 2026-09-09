@@ -116,6 +116,21 @@ extension.** Extensions run before the other bundles have configured anything, s
 `$container->has('some.service')` is always false there. Both `PurgeCommandPass` in `core-bundle`
 and `MercureHubPass` in `push-bundle` exist for exactly this reason.
 
+## The trap after generation
+
+⚠️ **Any later `composer require` or `composer update` inside the bundle re-runs the Flex recipes**,
+and they write into two files this repository tracks: `phpunit.xml.dist` — where framework-bundle
+adds `<env name="APP_ENV" value="dev"/>` and doctrine-bundle a PostgreSQL `DATABASE_URL` — and
+`.gitignore`. The generator restores both at generation time; it cannot restore them six weeks
+later.
+
+So after adding a dependency to a bundle, read `git status` before `git add`. The untracked
+deposits are ignored, the two tracked ones are not, and a `DATABASE_URL` pointing at a database the
+test kernel does not use is the kind of line someone reads and believes.
+
+This happened in `dataflow-bundle` on 2026-09-09, with the warning already written in the
+`.gitignore` of that very bundle.
+
 ## Writing the bundle afterwards
 
 In this order, and the order matters:
