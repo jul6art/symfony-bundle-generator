@@ -81,7 +81,13 @@ where it would force the package on every consumer for a feature most will not u
 
 ```
 api-bundle/
-├── .github/workflows/ci.yml     tests × {highest, lowest}, phpstan, cs + rector
+├── .github/
+│   ├── workflows/ci.yml         tests × {highest, lowest}, phpstan, cs + rector
+│   ├── CONTRIBUTING.md          the quality gate, the rules below, the Flex trap
+│   ├── SECURITY.md              private reporting; the scope is yours to narrow
+│   ├── CODE_OF_CONDUCT.md       Contributor Covenant 2.1
+│   ├── ISSUE_TEMPLATE/          bug report, feature request, config
+│   └── pull_request_template.md
 ├── .php-cs-fixer.dist.php       @Symfony + @PHP85Migration, risky allowed
 ├── phpstan.dist.neon            level max, no baseline
 ├── rector.php                   php sets read from the composer constraint
@@ -102,6 +108,22 @@ api-bundle/
 
 `composer qa` passes on a freshly generated bundle. If it ever does not, that is the generator's
 bug, not yours.
+
+A generated bundle also answers GitHub's community standards checklist on its first commit —
+description aside, which lives in the repository settings rather than in a file. Two of those
+files carry an `<!-- Bundle author: … -->` note where a generic template is not good enough:
+the **house rules** in `CONTRIBUTING.md`, which should end up naming what a pull request gets
+refused over in *this* bundle, and the **scope** in `SECURITY.md`, which should name what is
+actually dangerous about it — the decision it takes, the input it parses, the output it renders,
+the query it builds. A security policy that names the real attack surface gets useful reports; a
+generic one gets none.
+
+`SECURITY.md` links to GitHub's private vulnerability reporting, which has to be switched on per
+repository before that link works for anyone outside it:
+
+```shell
+gh api -X PUT repos/jul6art/api-bundle/private-vulnerability-reporting
+```
 
 ## The two rules the templates encode
 
