@@ -1,0 +1,60 @@
+name: New brick
+description: Propose a brick, or a change to what one generates
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        A brick is a data directory — `brick.conf` plus package lists — and it is
+        a maintenance commitment: everything it adds lands in every bundle
+        generated with it from then on.
+
+        The five bricks today are `console`, `form`, `orm`, `security` and
+        `twig`, and they are **cumulative, not exclusive**.
+  - type: input
+    id: name
+    attributes:
+      label: Brick name
+      description: The value it would answer to in `--with=`.
+      placeholder: messenger
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: What you write by hand today
+      description: In every bundle of this kind, right after generating it.
+    validations:
+      required: true
+  - type: textarea
+    id: contents
+    attributes:
+      label: What the brick would add
+      description: |
+        Development dependencies, the part of the `TestKernel` it switches on,
+        template files, generated tests.
+    validations:
+      required: true
+  - type: checkboxes
+    id: rules
+    attributes:
+      label: The rules it holds up against
+      description: See [CONTRIBUTING.md](https://github.com/jul6art/symfony-bundle-generator/blob/master/.github/CONTRIBUTING.md).
+      options:
+        - label: It adds nothing to `require` — dev dependencies plus `suggest` and conditional registration
+          required: true
+        - label: Optional dependencies are registered from the extension behind `class_exists()`, not by an attribute on a vendor class
+          required: true
+        - label: Anything depending on another *service* goes in a compiler pass, not the extension
+          required: true
+        - label: A bundle generated with this brick passes `composer qa` untouched
+          required: true
+  - type: textarea
+    id: combinations
+    attributes:
+      label: How it combines
+      description: |
+        Which existing bricks it is meant to be used with, and anything that
+        would conflict.
+    validations:
+      required: false

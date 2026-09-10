@@ -1,0 +1,75 @@
+name: Bug report
+description: The generator writes something wrong, or a generated bundle fails its own gate
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. The acceptance criterion of this project is that
+        `composer qa` passes on a freshly generated bundle — so if it does not,
+        that is a bug here, and this is the right place for it.
+
+        **Do not report a security problem here** — use
+        [private vulnerability reporting](https://github.com/jul6art/symfony-bundle-generator/security/advisories/new)
+        instead, as described in [SECURITY.md](https://github.com/jul6art/symfony-bundle-generator/blob/master/.github/SECURITY.md).
+  - type: input
+    id: command
+    attributes:
+      label: The command you ran
+      description: The full `./bin/new-bundle` line, bricks and overrides included.
+      placeholder: ./bin/new-bundle api --with=orm,security
+    validations:
+      required: true
+  - type: dropdown
+    id: bricks
+    attributes:
+      label: Bricks involved
+      description: They are cumulative — tick every one you passed to `--with=`.
+      multiple: true
+      options:
+        - none (bare bundle)
+        - console
+        - form
+        - orm
+        - security
+        - twig
+        - the generator itself (bin/new-bundle)
+        - the generated CI workflow
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: What happened instead
+      description: |
+        For a failing gate, the output of the step that failed — `cs-check`,
+        `rector-check`, `phpstan`, `test` or `composer validate`. The last 30
+        lines are usually enough.
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Output of `php -v | head -1`, `composer -V`, `symfony version`, `uname -sr`.
+      render: shell
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I generated into a fresh directory and it happened again
+          required: true
+        - label: I ran `composer install` in the generated bundle before `composer qa`
+          required: false
+        - label: The bundle is freshly generated — I have not run `composer require` in it since (that re-runs the Flex recipes, see the README)
+          required: false

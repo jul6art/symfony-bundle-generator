@@ -1,0 +1,11 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Report a security vulnerability
+    url: https://github.com/jul6art/symfony-bundle-generator/security/advisories/new
+    about: An insecure default in a generated template, a harness that hides a problem, a flaw in bin/new-bundle. Reported privately, never as an issue.
+  - name: How to contribute
+    url: https://github.com/jul6art/symfony-bundle-generator/blob/master/.github/CONTRIBUTING.md
+    about: The generate-then-`composer qa` loop, the two rules the templates encode, and the trap after generation.
+  - name: Documentation
+    url: https://github.com/jul6art/symfony-bundle-generator#readme
+    about: Bricks, placeholders, what you get, and the traps already paid for.
