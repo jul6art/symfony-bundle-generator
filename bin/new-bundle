@@ -334,6 +334,25 @@ if [ "$DRY_RUN" = 0 ]; then
     rm -f ./.env ./.env.dev ./.env.test ./.env.local.php ./compose.yaml ./compose.override.yaml ./symfony.lock ./AGENTS.md
     cp "$OVERLAY_DIR/phpunit.xml.dist" ./phpunit.xml.dist
     cp "$OVERLAY_DIR/.gitignore" ./.gitignore
+
+    # ── Flex dépose aussi DANS `composer.json` ─────────────────────────────────────────────
+    # La liste ci-dessus ne voit que des fichiers, et la recette de framework-bundle écrit en plus
+    # `scripts.auto-scripts` — dont `assets:install %PUBLIC_DIR%`, qui vise le `public/` que la
+    # ligne précédente vient d'effacer. Sept bundles de cet écosystème l'ont traîné jusqu'au
+    # 2026-09-21 sans que personne le voie, parce qu'un `scripts` d'un paquet non-root n'est jamais
+    # exécuté : c'est du bruit invisible, pas une panne.
+    #
+    # Le gabarit fait foi : ce qu'il ne déclare pas n'a rien à faire ici. `scripts` n'entre pas dans
+    # le hash de contenu du verrou (`name`, `version`, `require*`, `conflict`, `replace`, `provide`,
+    # `minimum-stability`, `prefer-stable`, `repositories`, `extra`), donc le réécrire après le
+    # `composer update` ne désynchronise rien et le `composer validate --strict` final reste vert.
+    info "dépôt Flex retiré de composer.json"
+    php -r '
+        $f = "composer.json";
+        $d = json_decode(file_get_contents($f), true, 512, JSON_THROW_ON_ERROR);
+        unset($d["scripts"]["auto-scripts"]);
+        file_put_contents($f, json_encode($d, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) . "\n");
+    '
 else
     info "require-dev :$BRICK_PKGS"
 fi
