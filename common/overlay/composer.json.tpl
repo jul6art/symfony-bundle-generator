@@ -19,14 +19,14 @@
         "symfony/yaml": "^7.4 || ^8.0"
     },
     "require-dev": {
-        "friendsofphp/php-cs-fixer": "^3.68",
-        "phpstan/extension-installer": "^1.4",
-        "phpstan/phpstan": "^2.1",
-        "phpstan/phpstan-phpunit": "^2.0",
-        "phpstan/phpstan-symfony": "^2.0",
-        "phpunit/phpunit": "^13.0",
-        "rector/rector": "^2.0",
-        "symfony/flex": "^2.4",
+        "friendsofphp/php-cs-fixer": "^3.95",
+        "phpstan/extension-installer": "^1.4.3",
+        "phpstan/phpstan": "^2.3.4",
+        "phpstan/phpstan-phpunit": "^2.1.1",
+        "phpstan/phpstan-symfony": "^2.1.1",
+        "phpunit/phpunit": "^13.4.5",
+        "rector/rector": "^2.8.3",
+        "symfony/flex": "^2.11",
         "symfony/framework-bundle": "^7.4 || ^8.0",
         "symfony/phpunit-bridge": "^7.4 || ^8.0",
         "symfony/var-dumper": "^7.4 || ^8.0"
