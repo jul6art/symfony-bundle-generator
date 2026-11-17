@@ -332,7 +332,9 @@ if [ "$DRY_RUN" = 0 ]; then
     info "squelette d'application déposé par Flex retiré"
     rm -rf ./bin ./config ./public ./src ./translations ./var ./templates
     rm -f ./.env ./.env.dev ./.env.test ./.env.local.php ./compose.yaml ./compose.override.yaml ./symfony.lock ./AGENTS.md
-    cp "$OVERLAY_DIR/phpunit.xml.dist" ./phpunit.xml.dist
+    # Remis depuis l'overlay APRÈS les substitutions : son placeholder se remplace ici, sinon la suite
+    # de tests s'appelle littéralement « {{BUNDLE_CLASS}} test suite » (setting-bundle, 2026-11-17).
+    perl -pe 's/\{\{BUNDLE_CLASS\}\}/$ENV{SK_BUNDLE_CLASS}/g' "$OVERLAY_DIR/phpunit.xml.dist" > ./phpunit.xml.dist
     cp "$OVERLAY_DIR/.gitignore" ./.gitignore
 
     # ── Flex dépose aussi DANS `composer.json` ─────────────────────────────────────────────
