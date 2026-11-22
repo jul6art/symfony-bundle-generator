@@ -5,7 +5,7 @@
 # In-house Symfony bundle generator
 
 <p align="left">
-    <a href="https://github.com/jul6art/symfony-bundle-generator/actions"><img src="https://img.shields.io/badge/php-8.5-777bb3.svg" alt="PHP 8.5"></a>
+    <a href="https://github.com/jul6art/symfony-bundle-generator/actions"><img src="https://img.shields.io/badge/php-8.6-777bb3.svg" alt="PHP 8.6"></a>
     <a href="https://github.com/jul6art/symfony-bundle-generator"><img src="https://img.shields.io/badge/symfony-7.4%20%7C%208.x-000000.svg" alt="Symfony 7.4 | 8.x"></a>
 </p>
 

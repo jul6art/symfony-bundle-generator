@@ -221,7 +221,7 @@ if [ "$DRY_RUN" = 0 ]; then
     export SK_TITLE_UNDERLINE="$BUNDLE_TITLE_UNDERLINE" SK_YEAR="$(date +%Y)"
     export SK_AUTHOR_NAME="Jul6Art" SK_AUTHOR_EMAIL="admin@devinthehood.com"
     export SK_AUTHOR_HOMEPAGE="https://devinthehood.com/" SK_COPYRIGHT="Geoffrey Kratz, Jul6art, DevInTheHood"
-    export SK_PHP="^8.5" SK_BRANCH_ALIAS="1.x-dev"
+    export SK_PHP="^8.6" SK_BRANCH_ALIAS="1.x-dev"
 
     # `-exec … {} +` et non un tube vers xargs : xargs lance l'utilitaire même sans fichier, et
     # `perl -pi` sans argument lit alors l'entrée standard — le générateur se figeait là, sans rien

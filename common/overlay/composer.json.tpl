@@ -12,7 +12,7 @@
         }
     ],
     "require": {
-        "php": "^8.5",
+        "php": "^8.6",
         "symfony/config": "^7.4 || ^8.0",
         "symfony/dependency-injection": "^7.4 || ^8.0",
         "symfony/http-kernel": "^7.4 || ^8.0",

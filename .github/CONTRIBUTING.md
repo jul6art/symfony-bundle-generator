@@ -40,7 +40,7 @@ cd symfony-bundle-generator
 ./bin/new-bundle probe --with=orm --dry-run   # prints everything, writes nothing
 ```
 
-You need PHP **^8.5**, Composer 2, the [Symfony CLI](https://symfony.com/download)
+You need PHP **^8.6**, Composer 2, the [Symfony CLI](https://symfony.com/download)
 and Git.
 
 ## Validating a change
