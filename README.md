@@ -88,7 +88,7 @@ api-bundle/
 │   ├── CODE_OF_CONDUCT.md       Contributor Covenant 2.1
 │   ├── ISSUE_TEMPLATE/          bug report, feature request, config
 │   └── pull_request_template.md
-├── .php-cs-fixer.dist.php       @Symfony + @PHP85Migration, risky allowed
+├── .php-cs-fixer.dist.php       @Symfony + @PHP8x5Migration, risky allowed
 ├── phpstan.dist.neon            level max, no baseline
 ├── rector.php                   php sets read from the composer constraint
 ├── phpunit.xml*                 fails on deprecations; ignores indirect ones

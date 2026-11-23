@@ -6,7 +6,7 @@ declare(strict_types=1);
 //
 // Flex est un plugin : il applique ses recipes à chaque `composer install`, **y compris en CI**, et
 // dépose un squelette d'application — `bin/phpunit`, `config/*`, `src/Kernel.php`, `public/`. Ces
-// fichiers ne suivent pas les règles d'ici (`declare_strict_types`, `@PHP85Migration`), et un
+// fichiers ne suivent pas les règles d'ici (`declare_strict_types`, `@PHP8x5Migration`), et un
 // balayage large les analyse : la CI passait au rouge sur du code que le bundle n'écrit pas et ne
 // livre pas. Les retirer localement ne suffit pas, la CI les recrée.
 //
@@ -40,7 +40,7 @@ return new PhpCsFixer\Config()
     ->setRules([
         '@Symfony' => true,
         '@Symfony:risky' => true,
-        '@PHP85Migration' => true,
+        '@PHP8x5Migration' => true,
         'declare_strict_types' => true,
         // Keeps the leading backslash on native calls, as the bundle sources do.
         'native_function_invocation' => [
